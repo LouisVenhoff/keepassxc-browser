@@ -196,7 +196,7 @@ kpxcFields.getSegmentedTOTPFields = function(inputs, combinations) {
 // Return all input fields on the page, but ignore previously detected
 kpxcFields.getAllPageInputs = async function(previousInputs = []) {
     const fields = [];
-    const inputs = kpxcObserverHelper.getInputs(document.body);
+    const inputs = [...kpxcObserverHelper.getInputs(document.body),...await this.getShadowRootPageInputs(document.body)];
 
     for (const input of inputs) {
         // Ignore fields that are already detected
@@ -223,6 +223,29 @@ kpxcFields.getAllPageInputs = async function(previousInputs = []) {
     await kpxc.initCombinations(inputs);
     return fields;
 };
+
+/**
+ * Recursively retrieves all input elements from a node and its shadow DOMs.
+ *
+ * This function traverses the DOM tree starting from the given node,
+ * collecting input elements from both the node's shadow DOM and its child nodes.
+ *
+ * @param {Node} node - The DOM node to start the search from.
+ * @param {Array} shadowInputs - An array to accumulate the input elements found.
+ * @returns {Promise<Array>} A promise that resolves to an array of input elements.
+ */
+kpxcFields.getShadowRootPageInputs = async function(node, shadowInputs = []){
+    if(node.shadowRoot){
+        let foundInputs = await node.shadowRoot.querySelectorAll("input");
+        shadowInputs.push(...foundInputs);
+    }
+
+    for(var child of node.childNodes){
+        await this.getShadowRootPageInputs(child, shadowInputs);
+    }
+    
+    return shadowInputs;
+}
 
 /**
  * Returns the combination where input field is used
